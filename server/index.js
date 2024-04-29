@@ -12,17 +12,19 @@ const io = Socket(server, {
     }
 });
 
-
+const getTime = () => {
+    const curr = new Date();
+    const hours = curr.getHours().toString().padStart(2, '0');
+    const minutes = curr.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
 
 io.on('connection', (socket) => {
 
-    console.log(`A user connected ${socket.id}`);
-
-
     socket.on("userConnected", ({ username }) => {
         socket.username = username;
-        console.log(socket.username);
-        socket.broadcast.emit("userConnected", { username: username, timestamp: new Date().toISOString() });
+
+        socket.broadcast.emit("userConnected", { username, timestamp: getTime() });
     });
 
     socket.on("message", message => {
@@ -30,15 +32,16 @@ io.on('connection', (socket) => {
             return;
         }
         const res = {
+            username: socket.username,
             ...message,
-            timestamp: new Date().toISOString()
+            timestamp: getTime()
         };
-        socket.emit("message", res);
+        io.sockets.emit("message", res);
     });
 
     socket.on("disconnect", (reason) => {
         if (socket.username) {
-            socket.emit("userDisconnected", { username: socket.username });
+            socket.broadcast.emit("userDisconnected", { username: socket.username, timestamp: getTime() });
         }
     });
 })
